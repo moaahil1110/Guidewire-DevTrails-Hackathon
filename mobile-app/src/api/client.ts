@@ -21,8 +21,50 @@ type RequestOptions = {
   body?: unknown;
 };
 
+const REQUEST_TIMEOUT_MS = 10000;
+
+async function parseError(response: Response): Promise<string> {
+  try {
+    const payload = await response.json();
+    if (typeof payload?.detail === "string") {
+      return payload.detail;
+    }
+    if (Array.isArray(payload?.detail)) {
+      return payload.detail
+        .map((entry: { msg?: string }) => entry?.msg)
+        .filter(Boolean)
+        .join(", ");
+    }
+  } catch {
+    // Fall through to text parsing below.
+  }
+
+  try {
+    const text = await response.text();
+    return text || "Request failed";
+  } catch {
+    return "Request failed";
+  }
+}
+
+async function fetchWithTimeout(input: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Request timed out. Please try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetchWithTimeout(`${API_URL}${path}`, {
     method: options.method || "GET",
     headers: {
       "Content-Type": "application/json",
@@ -32,37 +74,21 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   });
 
   if (!response.ok) {
-    const message = await response.text();
+    const message = await parseError(response);
     throw new Error(message || "Request failed");
   }
 
   return response.json() as Promise<T>;
 }
 
-async function loginRequest(email: string, password: string): Promise<TokenResponse> {
-  const form = new URLSearchParams();
-  form.append("username", email);
-  form.append("password", password);
-
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: form.toString(),
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || "Login failed");
-  }
-
-  return response.json() as Promise<TokenResponse>;
-}
-
 export const api = {
   register: (payload: RegisterPayload) =>
     request<TokenResponse>("/auth/register", { method: "POST", body: payload }),
   login: (email: string, password: string) =>
-    loginRequest(email, password),
+    request<TokenResponse>("/auth/login", {
+      method: "POST",
+      body: { email, password },
+    }),
   me: (token: string) => request<User>("/auth/me", { token }),
   quote: (token: string, tier: CoverageTier, forecastRiskMultiplier = 1.1) =>
     request<PremiumQuote>("/premium/quote", {

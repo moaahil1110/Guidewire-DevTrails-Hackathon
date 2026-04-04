@@ -5,11 +5,23 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "scheme": "insureit",
+    "backgroundColor": "#f7f3ea",
     "assetBundlePatterns": [
       "**/*"
     ],
+    "ios": {
+      "bundleIdentifier": "com.guidewire.insureit"
+    },
     "android": {
-      "package": "com.guidewire.insureit"
+      "package": "com.guidewire.insureit",
+      "adaptiveIcon": {
+        "backgroundColor": "#f7f3ea"
+      }
+    },
+    "splash": {
+      "backgroundColor": "#f7f3ea",
+      "resizeMode": "contain"
     },
     "plugins": [
       "expo-asset"
