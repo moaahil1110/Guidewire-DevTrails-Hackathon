@@ -19,6 +19,7 @@ from app.schemas import (
     SimulationTriggerRequest,
     Token,
     TriggerEvaluationResponse,
+    UserUpdateRequest,
     UserResponse,
     WeatherTriggerRequest,
 )
@@ -108,6 +109,34 @@ def me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@app.put("/auth/me", response_model=UserResponse)
+def update_me(
+    payload: UserUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    existing = (
+        db.query(User)
+        .filter(User.phone_number == payload.phone_number, User.id != current_user.id)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="Phone number already exists.")
+
+    current_user.full_name = payload.full_name
+    current_user.phone_number = payload.phone_number
+    current_user.city = payload.city
+    current_user.zone = payload.zone
+    current_user.pincode = payload.pincode
+    current_user.platform = payload.platform
+    current_user.avg_daily_earnings = payload.avg_daily_earnings
+    current_user.avg_hourly_earnings = round(payload.avg_daily_earnings / 8, 2)
+    current_user.risk_score = 38 if payload.platform.lower() == "zepto" else 35
+
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
 @app.post("/premium/quote", response_model=PremiumQuoteResponse)
 def premium_quote(
     payload: PremiumQuoteRequest,

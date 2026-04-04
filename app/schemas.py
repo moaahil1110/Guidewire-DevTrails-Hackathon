@@ -27,6 +27,16 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class UserUpdateRequest(BaseModel):
+    full_name: str
+    phone_number: str
+    city: str
+    zone: str
+    pincode: str
+    platform: str
+    avg_daily_earnings: float = Field(gt=0)
+
+
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
