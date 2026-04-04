@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.orange,
   },
   secondaryButton: {
-    backgroundColor: palette.bgElevated,
+    backgroundColor: palette.bgMuted,
     borderWidth: 1,
     borderColor: palette.border,
   },

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -12,8 +11,10 @@ import {
   View,
 } from 'react-native';
 
+import { Card } from '../components/Card';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
-import { palette, radius, shadows } from '../theme';
+import { palette, radius, typography } from '../theme';
 
 const PLATFORMS = ['Zepto', 'Blinkit'];
 
@@ -32,7 +33,8 @@ export function RegisterScreen({ navigation }: any) {
     avg_daily_earnings: '',
   });
 
-  const set = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
+  const setField = (key: keyof typeof form, value: string) =>
+    setForm((current) => ({ ...current, [key]: value }));
 
   const handleRegister = async () => {
     if (
@@ -44,7 +46,7 @@ export function RegisterScreen({ navigation }: any) {
       !form.pincode ||
       !form.avg_daily_earnings
     ) {
-      Alert.alert('Incomplete form', 'Please fill in all required fields before continuing.');
+      Alert.alert('Incomplete form', 'Please fill in all required rider details.');
       return;
     }
 
@@ -52,16 +54,10 @@ export function RegisterScreen({ navigation }: any) {
     try {
       await register({
         ...form,
-        platform: form.platform,
         avg_daily_earnings: Number(form.avg_daily_earnings),
       });
-    } catch (error: any) {
-      const message = `${error?.message || ''}`;
-      if (message.includes('already exists')) {
-        Alert.alert('Account exists', 'A rider with this email or phone number is already registered.');
-      } else {
-        Alert.alert('Registration failed', 'Please try again after checking the backend connection.');
-      }
+    } catch {
+      Alert.alert('Registration failed', 'Please try again after checking the backend connection.');
     } finally {
       setLoading(false);
     }
@@ -70,231 +66,145 @@ export function RegisterScreen({ navigation }: any) {
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.topPanel}>
-          <Text style={styles.kicker}>New Rider Onboarding</Text>
-          <Text style={styles.title}>Create your coverage profile.</Text>
-          <Text style={styles.subtitle}>
-            Build a delivery partner account, price the risk in your zone, and move straight into plan selection.
-          </Text>
-          <View style={styles.zoneStrip}>
-            <MiniStat label="City" value="Bengaluru" />
-            <MiniStat label="Cycle" value="Weekly" />
-            <MiniStat label="Claims" value="Auto" />
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <FormField label="Full Name" value={form.full_name} onChangeText={(v) => set('full_name', v)} placeholder="Ravi Kumar" />
-          <FormField label="Email" value={form.email} onChangeText={(v) => set('email', v)} placeholder="ravi@example.com" autoCapitalize="none" keyboardType="email-address" />
-          <FormField label="Phone Number" value={form.phone_number} onChangeText={(v) => set('phone_number', v)} placeholder="9876543210" keyboardType="phone-pad" />
-          <FormField label="Password" value={form.password} onChangeText={(v) => set('password', v)} placeholder="Minimum 6 characters" secureTextEntry />
-          <FormField label="City" value={form.city} onChangeText={(v) => set('city', v)} placeholder="Bengaluru" />
-          <FormField label="Zone / Area" value={form.zone} onChangeText={(v) => set('zone', v)} placeholder="Koramangala 4th Block" />
-          <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <FormField label="Pincode" value={form.pincode} onChangeText={(v) => set('pincode', v)} placeholder="560034" keyboardType="number-pad" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <FormField
-                label="Daily Earnings"
-                value={form.avg_daily_earnings}
-                onChangeText={(v) => set('avg_daily_earnings', v)}
-                placeholder="850"
-                keyboardType="decimal-pad"
-              />
-            </View>
+        <Card style={styles.card} elevated>
+          <Section title="Personal Info" />
+          <View style={styles.grid}>
+            <Field label="Full Name" value={form.full_name} onChangeText={(v: string) => setField('full_name', v)} />
+            <Field label="Email" value={form.email} onChangeText={(v: string) => setField('email', v)} autoCapitalize="none" keyboardType="email-address" />
+            <Field label="Phone" value={form.phone_number} onChangeText={(v: string) => setField('phone_number', v)} keyboardType="phone-pad" />
+            <Field label="Password" value={form.password} onChangeText={(v: string) => setField('password', v)} secureTextEntry />
           </View>
 
-          <Text style={styles.label}>Platform</Text>
+          <Section title="Location" />
+          <View style={styles.grid}>
+            <Field label="City" value={form.city} onChangeText={(v: string) => setField('city', v)} />
+            <Field label="Zone" value={form.zone} onChangeText={(v: string) => setField('zone', v)} />
+            <Field label="Pincode" value={form.pincode} onChangeText={(v: string) => setField('pincode', v)} keyboardType="number-pad" />
+            <Field
+              label="Daily Earnings"
+              value={form.avg_daily_earnings}
+              onChangeText={(v: string) => setField('avg_daily_earnings', v)}
+              keyboardType="decimal-pad"
+            />
+          </View>
+
+          <Section title="Platform" />
           <View style={styles.platformRow}>
             {PLATFORMS.map((platform) => {
-              const active = form.platform === platform;
+              const active = platform === form.platform;
               return (
                 <TouchableOpacity
                   key={platform}
-                  style={[styles.platformButton, active && styles.platformButtonActive]}
-                  onPress={() => set('platform', platform)}
+                  onPress={() => setField('platform', platform)}
+                  style={[styles.platformPill, active && styles.platformPillActive]}
                 >
-                  <Text style={[styles.platformButtonText, active && styles.platformButtonTextActive]}>{platform}</Text>
+                  <Text style={[styles.platformLabel, active && styles.platformLabelActive]}>{platform}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          <TouchableOpacity style={[styles.primaryButton, loading && styles.disabled]} onPress={handleRegister} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Create Account</Text>}
-          </TouchableOpacity>
-        </View>
+          <View style={styles.submit}>
+            <PrimaryButton label="Create Account" onPress={handleRegister} loading={loading} />
+          </View>
 
-        <TouchableOpacity style={styles.footerLinkWrap} onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.footerText}>Already registered?</Text>
-          <Text style={styles.footerLink}>Back to sign in</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.footerLink} onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.footerText}>Already registered? </Text>
+            <Text style={styles.footerAction}>Sign in</Text>
+          </TouchableOpacity>
+        </Card>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-function FormField(props: any) {
+function Field(props: any) {
   return (
-    <View>
-      <Text style={styles.label}>{props.label}</Text>
-      <TextInput {...props} style={styles.input} placeholderTextColor={palette.textMuted} />
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{props.label}</Text>
+      <TextInput {...props} placeholderTextColor={palette.textMuted} style={styles.input} />
     </View>
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.miniStat}>
-      <Text style={styles.miniValue}>{value}</Text>
-      <Text style={styles.miniLabel}>{label}</Text>
-    </View>
-  );
+function Section({ title }: { title: string }) {
+  return <Text style={styles.sectionTitle}>{title}</Text>;
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: palette.bg,
-  },
-  scroll: {
-    padding: 22,
-    paddingBottom: 40,
-  },
-  topPanel: {
-    backgroundColor: palette.bgCard,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 20,
-    marginBottom: 18,
-    ...shadows.card,
-  },
-  kicker: {
-    color: palette.orangeLight,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: palette.textPrimary,
-    fontSize: 28,
-    fontWeight: '800',
-    marginTop: 10,
-    lineHeight: 34,
-  },
-  subtitle: {
+  root: { flex: 1, backgroundColor: palette.bg },
+  scroll: { padding: 16, paddingBottom: 36 },
+  card: { padding: 20 },
+  sectionTitle: {
     color: palette.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 10,
-  },
-  zoneStrip: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 18,
-  },
-  miniStat: {
-    flex: 1,
-    backgroundColor: palette.bgElevated,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 12,
-  },
-  miniValue: {
-    color: palette.textPrimary,
-    fontWeight: '800',
-  },
-  miniLabel: {
-    color: palette.textMuted,
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
     marginTop: 4,
+    marginBottom: 8,
   },
-  card: {
-    backgroundColor: palette.bgCard,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 20,
-    ...shadows.card,
-  },
-  row: {
+  grid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  label: {
+  field: {
+    width: '48%',
+  },
+  fieldLabel: {
+    ...typography.label,
     color: palette.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 12,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: palette.bgInput,
+    minHeight: 46,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: palette.border,
-    color: palette.textPrimary,
+    borderColor: palette.borderStrong,
+    backgroundColor: palette.bgInput,
     paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 15,
+    color: palette.textPrimary,
   },
   platformRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
+    gap: 10,
+    marginTop: 8,
   },
-  platformButton: {
+  platformPill: {
     flex: 1,
-    backgroundColor: palette.bgElevated,
+    minHeight: 42,
+    borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: palette.border,
-    borderRadius: radius.md,
-    paddingVertical: 13,
+    borderColor: palette.borderStrong,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.bgSurface,
   },
-  platformButtonActive: {
-    backgroundColor: palette.orangeDim,
+  platformPillActive: {
+    backgroundColor: palette.orangeTint,
     borderColor: palette.orangeBorder,
   },
-  platformButtonText: {
+  platformLabel: {
     color: palette.textSecondary,
     fontWeight: '700',
   },
-  platformButtonTextActive: {
-    color: palette.orangeLight,
+  platformLabelActive: {
+    color: palette.orange,
   },
-  primaryButton: {
-    marginTop: 20,
-    backgroundColor: palette.orange,
-    borderRadius: radius.md,
-    paddingVertical: 15,
-    alignItems: 'center',
+  submit: {
+    marginTop: 18,
   },
-  primaryButtonText: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  footerLinkWrap: {
+  footerLink: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
-    marginTop: 18,
+    marginTop: 16,
   },
   footerText: {
     color: palette.textSecondary,
   },
-  footerLink: {
-    color: palette.orangeLight,
+  footerAction: {
+    color: palette.orange,
     fontWeight: '700',
-  },
-  disabled: {
-    opacity: 0.6,
   },
 });

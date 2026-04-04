@@ -11,42 +11,37 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { PolicyScreen } from '../screens/PolicyScreen';
 import { PremiumScreen } from '../screens/PremiumScreen';
 import { RegisterScreen } from '../screens/RegisterScreen';
-import { palette, radius } from '../theme';
+import { palette } from '../theme';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-function TabIcon({ short, label, focused }: { short: string; label: string; focused: boolean }) {
+function TabIcon({ icon, label, focused }: { icon: string; label: string; focused: boolean }) {
   return (
-    <View
-      style={{
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-        minWidth: 66,
-        paddingHorizontal: 10,
-        paddingVertical: 7,
-        borderRadius: radius.md,
-        backgroundColor: focused ? palette.orangeDim : 'transparent',
-        borderWidth: 1,
-        borderColor: focused ? palette.orangeBorder : 'transparent',
-      }}
-    >
+    <View style={{ alignItems: 'center', justifyContent: 'center', minWidth: 56 }}>
+      <Text
+        style={{
+          fontSize: 16,
+          marginBottom: 3,
+          color: focused ? palette.orange : palette.textMuted,
+        }}
+      >
+        {icon}
+      </Text>
+      <View
+        style={{
+          width: 12,
+          height: 3,
+          borderRadius: 999,
+          backgroundColor: focused ? palette.orange : 'transparent',
+          marginBottom: 5,
+        }}
+      />
       <Text
         style={{
           fontSize: 10,
-          letterSpacing: 1,
-          fontWeight: '800',
-          color: focused ? palette.orangeLight : palette.textMuted,
-        }}
-      >
-        {short}
-      </Text>
-      <Text
-        style={{
-          fontSize: 9,
           fontWeight: focused ? '700' : '500',
-          color: focused ? palette.textPrimary : palette.textMuted,
+          color: focused ? palette.orange : palette.textMuted,
         }}
       >
         {label}
@@ -62,11 +57,11 @@ function MainTabs() {
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: palette.bgCard,
+          backgroundColor: '#FFFFFF',
           borderTopColor: palette.border,
           borderTopWidth: 1,
-          height: 74,
-          paddingBottom: 10,
+          height: 72,
+          paddingBottom: 12,
           paddingTop: 8,
         },
       }}
@@ -74,27 +69,27 @@ function MainTabs() {
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon short="HM" label="Home" focused={focused} /> }}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon icon="⌂" label="Home" focused={focused} /> }}
       />
       <Tab.Screen
         name="Policy"
         component={PolicyScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon short="PL" label="Policy" focused={focused} /> }}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon icon="▣" label="Policy" focused={focused} /> }}
       />
       <Tab.Screen
         name="Premium"
         component={PremiumScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon short="PN" label="Plans" focused={focused} /> }}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon icon="◫" label="Plans" focused={focused} /> }}
       />
       <Tab.Screen
         name="Claims"
         component={ClaimsScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon short="CL" label="Claims" focused={focused} /> }}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon icon="◎" label="Claims" focused={focused} /> }}
       />
       <Tab.Screen
         name="Account"
         component={AccountScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon short="AC" label="Account" focused={focused} /> }}
+        options={{ tabBarIcon: ({ focused }) => <TabIcon icon="◌" label="Account" focused={focused} /> }}
       />
     </Tab.Navigator>
   );

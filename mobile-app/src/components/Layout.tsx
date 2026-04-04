@@ -25,7 +25,7 @@ export function ScreenLayout({
 
 export const cardStyles = StyleSheet.create({
   card: {
-    backgroundColor: palette.bgCard,
+    backgroundColor: palette.bgSurface,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,

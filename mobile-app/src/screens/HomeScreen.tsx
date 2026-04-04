@@ -1,364 +1,276 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { api } from '../api/client';
+import { Badge } from '../components/Badge';
+import { Card } from '../components/Card';
+import { SectionHeader } from '../components/SectionHeader';
 import { useAuth } from '../context/AuthContext';
-import { palette, radius, shadows } from '../theme';
+import { palette, radius, typography } from '../theme';
+import { formatCurrency, formatDate, getCoverageDaysRemaining, getDisplayedPolicyPrice, getDisruptionCode, getDisruptionLabel, getGreeting, getTierLabel } from '../utils/format';
+import type { Claim, Policy } from '../types';
+
+const ACTIONS = [
+  { label: 'Policy', target: 'Policy', icon: 'PL' },
+  { label: 'Plans', target: 'Premium', icon: 'PN' },
+  { label: 'Claims', target: 'Claims', icon: 'CL' },
+  { label: 'Account', target: 'Account', icon: 'AC' },
+];
 
 export function HomeScreen({ navigation }: any) {
-  const { user, logout } = useAuth();
+  const { user, token } = useAuth();
+  const [policy, setPolicy] = useState<Policy | null>(null);
+  const [claims, setClaims] = useState<Claim[]>([]);
 
-  const firstName = user?.full_name?.split(' ')[0] || 'Rider';
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  useEffect(() => {
+    const run = async () => {
+      if (!token) return;
+      const [policyResult, claimsResult] = await Promise.allSettled([api.activePolicy(token), api.claims(token)]);
+      setPolicy(policyResult.status === 'fulfilled' ? policyResult.value : null);
+      setClaims(claimsResult.status === 'fulfilled' ? claimsResult.value.slice(0, 3) : []);
+    };
 
-  const quickCards = [
-    {
-      title: 'Policy Details',
-      subtitle: 'Review your active cover and blocked-hour limits.',
-      screen: 'Policy',
-      accent: palette.orange,
-    },
-    {
-      title: 'Upgrade Plan',
-      subtitle: 'Switch your tier before the next payout cycle.',
-      screen: 'Premium',
-      accent: palette.blue,
-    },
-    {
-      title: 'Fast Claims',
-      subtitle: 'Trigger the simulator and preview instant payouts.',
-      screen: 'Claims',
-      accent: palette.violet,
-    },
-    {
-      title: 'Account',
-      subtitle: 'Keep rider details and zone information current.',
-      screen: 'Account',
-      accent: palette.success,
-    },
-  ];
+    void run();
+  }, [token]);
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
-      <View style={styles.shell}>
-        <View style={styles.topBar}>
-          <View>
-            <Text style={styles.brand}>InsureIt</Text>
-            <Text style={styles.navMeta}>Dashboard</Text>
-          </View>
-          <TouchableOpacity style={styles.signOutButton} onPress={logout}>
-            <Text style={styles.signOutButtonText}>Sign out</Text>
-          </TouchableOpacity>
+      <View style={styles.greeting}>
+        <Text style={styles.greetingTitle}>
+          {getGreeting()}, {user?.full_name?.split(' ')[0] || 'Ravi'}
+        </Text>
+        <Text style={styles.greetingSubtitle}>Your income is protected</Text>
+      </View>
+
+      <View style={styles.heroStrip}>
+        <View>
+          <Text style={styles.heroValue}>{formatCurrency(user?.avg_daily_earnings)} earned today</Text>
+          <Badge label="↑ 12% vs yesterday" tone="success" />
         </View>
-
-        <View style={styles.heroPanel}>
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroKicker}>Coverage Active</Text>
-            <Text style={styles.heroTitle}>
-              {greeting}, {firstName}
-            </Text>
-            <Text style={styles.heroSubtitle}>
-              Your income protection is live. Watch active coverage, price updates, and claim triggers from one place.
-            </Text>
-          </View>
-
-          <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeLabel}>Current zone</Text>
-            <Text style={styles.heroBadgeValue}>{user?.zone || 'Unknown zone'}</Text>
-            <Text style={styles.heroBadgeMeta}>{user?.city || 'Bengaluru'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.statsGrid}>
-          <StatCard label="Daily earnings" value={`Rs ${user?.avg_daily_earnings ?? '--'}`} accent={palette.orange} />
-          <StatCard label="Platform" value={user?.platform || '--'} accent={palette.blue} />
-          <StatCard label="Risk score" value={String(user?.risk_score ?? '--')} accent={palette.success} />
-          <StatCard label="Coverage window" value="7 days" accent={palette.violet} />
-        </View>
-
-        <View style={styles.mapCard}>
-          <View style={styles.mapHeader}>
-            <Text style={styles.sectionTitle}>Active route</Text>
-            <Text style={styles.mapMeta}>Live mobile view</Text>
-          </View>
-          <View style={styles.mapCanvas}>
-            <View style={styles.routeDot} />
-            <View style={styles.routeLine} />
-            <View style={[styles.routeDot, { top: 74, left: '58%' }]} />
-            <View style={[styles.routeLine, { top: 92, left: '45%', width: '30%', transform: [{ rotate: '-18deg' }] }]} />
-            <View style={[styles.routeDot, { top: 132, left: '72%' }]} />
-          </View>
-          <View style={styles.mapFooterPill}>
-            <Text style={styles.mapFooterLabel}>Estimated claim readiness in 90 sec during a disruption</Text>
-          </View>
-        </View>
-
-        <Text style={styles.sectionHeading}>Operational Controls</Text>
-        <View style={styles.controlsGrid}>
-          {quickCards.map((card) => (
-            <TouchableOpacity key={card.title} style={styles.controlCard} onPress={() => navigation.navigate(card.screen)}>
-              <View style={[styles.controlAccent, { backgroundColor: card.accent }]} />
-              <Text style={styles.controlTitle}>{card.title}</Text>
-              <Text style={styles.controlText}>{card.subtitle}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.heroMeta}>
+          <Badge label="Low Risk" tone="success" />
+          <Text style={styles.heroMetaText}>In 45 mins</Text>
         </View>
       </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionRow}>
+        {ACTIONS.map((action) => (
+          <TouchableOpacity key={action.label} style={styles.actionPill} onPress={() => navigation.navigate(action.target)}>
+            <View style={styles.actionIcon}>
+              <Text style={styles.actionIconText}>{action.icon}</Text>
+            </View>
+            <Text style={styles.actionLabel}>{action.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <Card style={styles.policyCard}>
+        <View style={styles.policyAccent} />
+        <View style={styles.policyBody}>
+          <Text style={styles.policyTitle}>{policy ? `${getTierLabel(policy.tier)} Plan` : 'No active plan'}</Text>
+          <Text style={styles.policySubtitle}>
+            {policy ? `Coverage ends ${formatDate(policy.coverage_end)}` : 'Buy a plan to activate coverage'}
+          </Text>
+          {policy ? (
+            <View style={styles.policyStats}>
+              <Text style={styles.policyStat}>Max payout {formatCurrency(policy.max_weekly_payout)}</Text>
+              <Text style={styles.policyStat}>Premium {formatCurrency(getDisplayedPolicyPrice(policy))}</Text>
+              <Text style={styles.policyStat}>{getCoverageDaysRemaining(policy)}</Text>
+            </View>
+          ) : null}
+          <TouchableOpacity onPress={() => navigation.navigate(policy ? 'Policy' : 'Premium')}>
+            <Text style={styles.linkText}>{policy ? 'View Details →' : 'Buy a plan →'}</Text>
+          </TouchableOpacity>
+        </View>
+      </Card>
+
+      <Card>
+        <SectionHeader title="Recent Claims" actionLabel="View all claims →" onActionPress={() => navigation.navigate('Claims')} />
+        <View style={styles.claimsList}>
+          {claims.length ? (
+            claims.map((claim) => (
+              <View key={claim.id} style={styles.claimRow}>
+                <View style={styles.claimCodeCircle}>
+                  <Text style={styles.claimCodeText}>{getDisruptionCode(claim.disruption_type)}</Text>
+                </View>
+                <View style={styles.claimCenter}>
+                  <Text style={styles.claimType}>{getDisruptionLabel(claim.disruption_type)}</Text>
+                  <Text style={styles.claimMeta}>{formatDate(claim.created_at)}</Text>
+                </View>
+                <View style={styles.claimRight}>
+                  <Text style={styles.claimAmount}>{formatCurrency(claim.payout_amount)}</Text>
+                  <Badge label={claim.status === 'paid' ? 'Credited' : claim.status} tone={claim.status === 'paid' ? 'success' : 'warning'} />
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.emptyText}>No claims yet. Simulate a disruption to populate this list.</Text>
+          )}
+        </View>
+      </Card>
     </ScrollView>
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: string; accent: string }) {
-  return (
-    <View style={styles.statCard}>
-      <View style={[styles.statAccent, { backgroundColor: accent }]} />
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: palette.bg,
+  root: { flex: 1, backgroundColor: palette.bg },
+  scroll: { padding: 16, paddingTop: 20, paddingBottom: 32, gap: 16 },
+  greeting: {
+    gap: 4,
   },
-  scroll: {
-    padding: 16,
-    paddingBottom: 36,
+  greetingTitle: {
+    ...typography.displayMedium,
+    color: palette.textPrimary,
   },
-  shell: {
-    backgroundColor: palette.bgSoft,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 16,
-    ...shadows.card,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  brand: {
-    color: palette.orangeSoft,
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  navMeta: {
+  greetingSubtitle: {
     color: palette.textMuted,
-    fontSize: 12,
-    marginTop: 2,
+    fontSize: 14,
   },
-  signOutButton: {
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: palette.border,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: palette.bgGlass,
-  },
-  signOutButtonText: {
-    color: palette.textSecondary,
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  heroPanel: {
-    backgroundColor: palette.bgCard,
+  heroStrip: {
+    marginTop: 16,
     borderRadius: radius.xl,
+    backgroundColor: palette.orangeTint,
     borderWidth: 1,
-    borderColor: palette.border,
-    padding: 18,
+    borderColor: palette.orangeBorder,
+    padding: 16,
     flexDirection: 'row',
-    gap: 14,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  heroCopy: {
-    flex: 1,
-  },
-  heroKicker: {
-    alignSelf: 'flex-start',
-    backgroundColor: palette.successDim,
-    color: palette.success,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-    overflow: 'hidden',
-    fontSize: 11,
+  heroValue: {
+    color: palette.orange,
+    fontSize: 24,
     fontWeight: '800',
-    letterSpacing: 0.8,
-    marginBottom: 12,
-  },
-  heroTitle: {
-    color: palette.textPrimary,
-    fontSize: 30,
-    fontWeight: '800',
-  },
-  heroSubtitle: {
-    color: palette.textSecondary,
-    lineHeight: 21,
-    marginTop: 8,
-  },
-  heroBadge: {
-    width: 116,
-    backgroundColor: palette.blueDim,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: '#164e63',
-    padding: 12,
-    justifyContent: 'center',
-  },
-  heroBadgeLabel: {
-    color: palette.blue,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    fontWeight: '700',
-  },
-  heroBadgeValue: {
-    color: palette.textPrimary,
-    fontSize: 18,
-    fontWeight: '800',
-    marginTop: 10,
-  },
-  heroBadgeMeta: {
-    color: palette.textSecondary,
-    fontSize: 12,
-    marginTop: 4,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 14,
-  },
-  statCard: {
-    width: '48%',
-    backgroundColor: palette.bgCard,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 14,
-  },
-  statAccent: {
-    width: 24,
-    height: 4,
-    borderRadius: radius.full,
     marginBottom: 10,
   },
-  statLabel: {
-    color: palette.textMuted,
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+  heroMeta: {
+    alignItems: 'flex-end',
+    gap: 10,
   },
-  statValue: {
+  heroMetaText: {
+    color: palette.textMuted,
+    fontSize: 12,
+  },
+  actionRow: {
+    gap: 10,
+    paddingVertical: 16,
+  },
+  actionPill: {
+    minWidth: 84,
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    backgroundColor: palette.bgSurface,
+    borderWidth: 1,
+    borderColor: palette.border,
+  },
+  actionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.full,
+    backgroundColor: palette.bgSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionIconText: {
+    color: palette.orange,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  actionLabel: {
+    color: palette.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  policyCard: {
+    flexDirection: 'row',
+    padding: 0,
+    overflow: 'hidden',
+  },
+  policyAccent: {
+    width: 4,
+    backgroundColor: palette.orange,
+  },
+  policyBody: {
+    flex: 1,
+    padding: 16,
+  },
+  policyTitle: {
     color: palette.textPrimary,
     fontSize: 20,
     fontWeight: '800',
-    marginTop: 8,
   },
-  mapCard: {
-    backgroundColor: palette.bgCard,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 16,
-    marginTop: 14,
-  },
-  mapHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    color: palette.textPrimary,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  mapMeta: {
+  policySubtitle: {
     color: palette.textMuted,
-    fontSize: 12,
+    marginTop: 4,
   },
-  mapCanvas: {
-    height: 180,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    backgroundColor: '#20242c',
-    borderWidth: 1,
-    borderColor: palette.border,
-    position: 'relative',
-  },
-  routeDot: {
-    position: 'absolute',
-    top: 30,
-    left: '34%',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: palette.orange,
-    borderWidth: 3,
-    borderColor: '#fff',
-  },
-  routeLine: {
-    position: 'absolute',
-    top: 46,
-    left: '37%',
-    width: '24%',
-    height: 3,
-    backgroundColor: 'rgba(255,255,255,0.45)',
-    transform: [{ rotate: '26deg' }],
-  },
-  mapFooterPill: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
-    backgroundColor: palette.bgElevated,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: palette.border,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  mapFooterLabel: {
-    color: palette.textSecondary,
-    fontSize: 11,
-  },
-  sectionHeading: {
-    color: palette.textPrimary,
-    fontSize: 18,
-    fontWeight: '800',
-    marginTop: 18,
-    marginBottom: 12,
-  },
-  controlsGrid: {
+  policyStats: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+    marginTop: 14,
   },
-  controlCard: {
-    width: '48%',
-    backgroundColor: palette.bgCard,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 16,
+  policyStat: {
+    color: palette.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
-  controlAccent: {
-    width: 36,
-    height: 6,
+  linkText: {
+    marginTop: 12,
+    color: palette.orange,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  claimsList: {
+    marginTop: 14,
+  },
+  claimRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: palette.divider,
+  },
+  claimCodeCircle: {
+    width: 34,
+    height: 34,
     borderRadius: radius.full,
-    marginBottom: 12,
+    backgroundColor: palette.orangeTint,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  controlTitle: {
-    color: palette.textPrimary,
-    fontSize: 15,
+  claimCodeText: {
+    color: palette.orange,
+    fontSize: 11,
     fontWeight: '800',
   },
-  controlText: {
-    color: palette.textSecondary,
-    lineHeight: 19,
-    marginTop: 6,
-    fontSize: 12,
+  claimCenter: {
+    flex: 1,
+  },
+  claimType: {
+    color: palette.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  claimMeta: {
+    color: palette.textMuted,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  claimRight: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  claimAmount: {
+    color: palette.textPrimary,
+    fontWeight: '800',
+  },
+  emptyText: {
+    marginTop: 12,
+    color: palette.textMuted,
+    fontSize: 13,
   },
 });

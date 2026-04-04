@@ -1,44 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '../api/client';
+import { Badge } from '../components/Badge';
+import { Card } from '../components/Card';
 import { useAuth } from '../context/AuthContext';
-import { palette, radius, shadows } from '../theme';
+import { palette, radius, typography } from '../theme';
+import { formatCurrency, formatDate, getDisplayedPolicyPrice, getTierLabel } from '../utils/format';
 
-function getDisplayedPolicyPrice(tier?: string, premium?: number) {
-  if (tier === 'basic') {
-    return 29;
-  }
-  return premium ? Number(premium.toFixed(0)) : null;
-}
-
-export function PolicyScreen({ navigation }: any) {
+export function PolicyScreen() {
   const { token } = useAuth();
   const [policy, setPolicy] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPolicy();
-  }, []);
+    const fetchPolicy = async () => {
+      if (!token) return;
+      setLoading(true);
+      try {
+        setPolicy(await api.activePolicy(token));
+      } catch {
+        setPolicy(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchPolicy = async () => {
-    if (!token) return;
-    setLoading(true);
-    try {
-      const result = await api.activePolicy(token);
-      setPolicy(result);
-    } catch {
-      setPolicy(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+    void fetchPolicy();
+  }, [token]);
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={palette.orange} size="large" />
-        <Text style={styles.loadingText}>Loading active policy</Text>
+        <ActivityIndicator color={palette.orange} />
+        <Text style={styles.loadingText}>Loading policy details</Text>
       </View>
     );
   }
@@ -47,101 +42,95 @@ export function PolicyScreen({ navigation }: any) {
     return (
       <View style={styles.centered}>
         <Text style={styles.emptyTitle}>No active policy</Text>
-        <Text style={styles.emptyText}>Buy a plan first to unlock disruption-triggered claims and payout automation.</Text>
-        <TouchableOpacity style={styles.emptyButton} onPress={() => navigation.navigate('Premium')}>
-          <Text style={styles.emptyButtonText}>Browse Plans</Text>
-        </TouchableOpacity>
+        <Text style={styles.emptyText}>Buy a plan to unlock disruption-triggered protection.</Text>
       </View>
     );
   }
 
-  const start = new Date(policy.coverage_start).toLocaleDateString();
-  const end = new Date(policy.coverage_end).toLocaleDateString();
-  const displayedPrice = getDisplayedPolicyPrice(policy.tier, policy.weekly_premium);
+  const covered = [
+    'Heavy Rain',
+    'Extreme Heat',
+    'Flash Flood',
+    policy.social_disruption_cover ? 'Local Curfew / Bandh' : null,
+  ].filter(Boolean) as string[];
+
+  const notCovered = ['Health / Accident', 'Vehicle Repairs', 'Manual reimbursement'];
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.scroll}>
-      <View style={styles.headerPanel}>
-        <Text style={styles.brand}>InsureIt</Text>
-        <Text style={styles.title}>My Policy</Text>
-        <Text style={styles.subtitle}>Active protection for this coverage week</Text>
-      </View>
-
       <View style={styles.heroCard}>
-        <View style={styles.heroTopRow}>
+        <View style={styles.heroTop}>
           <View>
-            <Text style={styles.planName}>{policy.tier.toUpperCase()} PLAN</Text>
-            <View style={styles.activeBadge}>
-              <View style={styles.activeDot} />
-              <Text style={styles.activeBadgeText}>Active</Text>
-            </View>
+            <Badge label={`${getTierLabel(policy.tier).toUpperCase()} PLAN`} tone="orange" />
+            <Text style={styles.price}>{formatCurrency(getDisplayedPolicyPrice(policy))}</Text>
+            <Text style={styles.perWeek}>/ week</Text>
           </View>
-          <View style={styles.priceBlock}>
-            <Text style={styles.priceValue}>Rs {displayedPrice ?? '--'}</Text>
-            <Text style={styles.priceMeta}>weekly premium</Text>
-          </View>
+          <Badge label="Active" tone="success" />
         </View>
 
-        <View style={styles.summaryRow}>
-          <SummaryStat label="Max payout" value={`Rs ${policy.max_weekly_payout}`} />
-          <SummaryStat label="Start" value={start} />
-          <SummaryStat label="End" value={end} />
+        <View style={styles.statPills}>
+          <StatPill label="Max Payout" value={formatCurrency(policy.max_weekly_payout)} />
+          <StatPill label="Start" value={formatDate(policy.coverage_start)} />
+          <StatPill label="End" value={formatDate(policy.coverage_end)} />
         </View>
       </View>
 
-      <View style={styles.dualSection}>
-        <View style={styles.coverageCard}>
-          <Text style={styles.sectionTitle}>What's covered</Text>
-          <CoverageRow label="Heavy Rain" active />
-          <CoverageRow label="Extreme Heat" active />
-          <CoverageRow label="Flash Flood" active />
-          <CoverageRow label="Local Curfew / Bandh" active={policy.social_disruption_cover} />
+      <Card>
+        <Text style={styles.sectionTitle}>Coverage Details</Text>
+        <View style={styles.coverageColumns}>
+          <View style={styles.coverageColumn}>
+            <Text style={styles.columnTitle}>What&apos;s covered</Text>
+            {covered.map((item) => (
+              <CoverageItem key={item} label={item} covered />
+            ))}
+          </View>
+          <View style={styles.coverageColumn}>
+            <Text style={styles.columnTitle}>Not covered</Text>
+            {notCovered.map((item) => (
+              <CoverageItem key={item} label={item} covered={false} />
+            ))}
+          </View>
         </View>
+      </Card>
 
-        <View style={styles.coverageCard}>
-          <Text style={styles.sectionTitle}>Not covered</Text>
-          <CoverageRow label="Health / Accident" active={false} />
-          <CoverageRow label="Vehicle Repairs" active={false} />
-          <CoverageRow label="Manual reimbursement" active={false} />
-          <CoverageRow label="Offline cash claims" active={false} />
-        </View>
-      </View>
-
-      <View style={styles.processCard}>
+      <Card>
         <Text style={styles.sectionTitle}>How payouts work</Text>
-        <Text style={styles.processText}>
-          When your zone crosses a configured trigger, the system auto-detects the disruption, validates it, and credits the payout against your active policy.
-        </Text>
         <View style={styles.timelineRow}>
-          <TimelineStep number="01" label="Disruption detected" />
+          <TimelineStep number="01" label="Detected" />
           <TimelineLine />
-          <TimelineStep number="02" label="AI validates" />
+          <TimelineStep number="02" label="Validated" />
           <TimelineLine />
-          <TimelineStep number="03" label="UPI credited" />
+          <TimelineStep number="03" label="Credited" />
         </View>
-      </View>
+        <Text style={styles.timelineText}>
+          Verified disruptions are detected, checked against policy rules, and then routed for
+          instant payout credit.
+        </Text>
+      </Card>
+
+      <Text style={styles.footerNote}>
+        Coverage only. Does not include health, accident, or vehicle insurance.
+      </Text>
     </ScrollView>
   );
 }
 
-function SummaryStat({ label, value }: { label: string; value: string }) {
+function StatPill({ label, value }: { label: string; value: string }) {
   return (
-    <View style={styles.summaryStat}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={styles.summaryValue}>{value}</Text>
+    <View style={styles.statPill}>
+      <Text style={styles.statPillLabel}>{label}</Text>
+      <Text style={styles.statPillValue}>{value}</Text>
     </View>
   );
 }
 
-function CoverageRow({ label, active }: { label: string; active: boolean }) {
+function CoverageItem({ label, covered }: { label: string; covered: boolean }) {
   return (
-    <View style={styles.coverageRow}>
+    <View style={styles.coverageItem}>
+      <Text style={[styles.coverageIcon, { color: covered ? palette.success : palette.error }]}>
+        {covered ? '✓' : '✕'}
+      </Text>
       <Text style={styles.coverageLabel}>{label}</Text>
-      <View style={[styles.coverageChip, active ? styles.coverageChipOn : styles.coverageChipOff]}>
-        <Text style={[styles.coverageChipText, active ? styles.coverageChipTextOn : styles.coverageChipTextOff]}>
-          {active ? 'Included' : 'Excluded'}
-        </Text>
-      </View>
     </View>
   );
 }
@@ -163,225 +152,132 @@ function TimelineLine() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: palette.bg },
-  scroll: { padding: 16, paddingBottom: 40 },
-  centered: {
-    flex: 1,
-    backgroundColor: palette.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  loadingText: { color: palette.textSecondary, marginTop: 12 },
+  scroll: { padding: 16, paddingBottom: 32, gap: 16 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.bg, padding: 24 },
+  loadingText: { marginTop: 10, color: palette.textMuted },
   emptyTitle: { color: palette.textPrimary, fontSize: 24, fontWeight: '800' },
-  emptyText: { color: palette.textSecondary, textAlign: 'center', marginTop: 8, lineHeight: 20 },
-  emptyButton: {
-    marginTop: 18,
-    backgroundColor: palette.orange,
-    borderRadius: radius.md,
-    paddingHorizontal: 18,
-    paddingVertical: 13,
-  },
-  emptyButtonText: { color: '#fff', fontWeight: '800' },
-  headerPanel: {
-    backgroundColor: palette.bgSoft,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 18,
-    ...shadows.card,
-  },
-  brand: {
-    color: palette.orangeSoft,
-    fontWeight: '800',
-    fontSize: 16,
-  },
-  title: {
-    color: palette.textPrimary,
-    fontSize: 30,
-    fontWeight: '800',
-    marginTop: 10,
-  },
-  subtitle: {
-    color: palette.textSecondary,
-    marginTop: 4,
-  },
+  emptyText: { color: palette.textSecondary, textAlign: 'center', marginTop: 8 },
   heroCard: {
-    backgroundColor: palette.bgCard,
+    backgroundColor: palette.orangeTint,
     borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: palette.orangeBorder,
-    padding: 20,
-    marginTop: 16,
-    ...shadows.card,
+    padding: 16,
   },
-  heroTopRow: {
+  heroTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    alignItems: 'flex-start',
   },
-  planName: {
+  price: {
     color: palette.textPrimary,
-    fontSize: 24,
+    fontSize: 36,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    marginTop: 14,
   },
-  activeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: palette.successDim,
-    borderRadius: radius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginTop: 10,
-    gap: 6,
-  },
-  activeDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: palette.success,
-  },
-  activeBadgeText: {
-    color: palette.success,
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  priceBlock: {
-    alignItems: 'flex-end',
-  },
-  priceValue: {
-    color: palette.orangeLight,
-    fontSize: 30,
-    fontWeight: '800',
-  },
-  priceMeta: {
+  perWeek: {
     color: palette.textMuted,
-    marginTop: 4,
-    fontSize: 11,
+    fontSize: 13,
+    marginTop: 2,
   },
-  summaryRow: {
+  statPills: {
     flexDirection: 'row',
     gap: 10,
     marginTop: 18,
   },
-  summaryStat: {
+  statPill: {
     flex: 1,
-    backgroundColor: palette.bgElevated,
-    borderRadius: radius.md,
+    backgroundColor: palette.bgSurface,
+    borderRadius: radius.full,
     borderWidth: 1,
     borderColor: palette.border,
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  summaryLabel: {
+  statPillLabel: {
+    ...typography.label,
     color: palette.textMuted,
-    textTransform: 'uppercase',
-    fontSize: 10,
-    letterSpacing: 0.8,
+    marginBottom: 4,
   },
-  summaryValue: {
+  statPillValue: {
     color: palette.textPrimary,
-    fontWeight: '800',
-    marginTop: 8,
-  },
-  dualSection: {
-    gap: 14,
-    marginTop: 16,
-  },
-  coverageCard: {
-    backgroundColor: palette.bgCard,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 16,
+    fontSize: 12,
+    fontWeight: '700',
   },
   sectionTitle: {
     color: palette.textPrimary,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  coverageRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.borderLight,
+  coverageColumns: {
+    gap: 18,
   },
-  coverageLabel: {
+  coverageColumn: {
+    gap: 10,
+  },
+  columnTitle: {
     color: palette.textSecondary,
-    flex: 1,
-  },
-  coverageChip: {
-    borderRadius: radius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  coverageChipOn: {
-    backgroundColor: palette.successDim,
-  },
-  coverageChipOff: {
-    backgroundColor: palette.errorDim,
-  },
-  coverageChipText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
   },
-  coverageChipTextOn: {
-    color: palette.success,
+  coverageItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  coverageChipTextOff: {
-    color: palette.error,
+  coverageIcon: {
+    fontSize: 16,
+    fontWeight: '800',
   },
-  processCard: {
-    backgroundColor: palette.bgCard,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 18,
-    marginTop: 16,
-  },
-  processText: {
-    color: palette.textSecondary,
-    lineHeight: 20,
+  coverageLabel: {
+    color: palette.textPrimary,
+    fontSize: 14,
   },
   timelineRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 20,
   },
   timelineStep: {
     alignItems: 'center',
-    flex: 1,
+    width: 72,
   },
   timelineNumber: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
     backgroundColor: palette.orange,
     alignItems: 'center',
     justifyContent: 'center',
   },
   timelineNumberText: {
     color: '#fff',
-    fontWeight: '800',
     fontSize: 11,
+    fontWeight: '800',
   },
   timelineLabel: {
-    color: palette.textSecondary,
-    textAlign: 'center',
-    fontSize: 11,
-    lineHeight: 15,
-    marginTop: 10,
+    color: palette.textPrimary,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 8,
   },
   timelineLine: {
-    height: 2,
-    flex: 0.45,
-    backgroundColor: palette.orangeBorder,
-    marginBottom: 22,
+    flex: 1,
+    borderTopWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: palette.borderStrong,
+    marginHorizontal: 4,
+  },
+  timelineText: {
+    color: palette.textSecondary,
+    marginTop: 14,
+    lineHeight: 20,
+  },
+  footerNote: {
+    textAlign: 'center',
+    color: palette.textMuted,
+    fontSize: 11,
+    fontStyle: 'italic',
   },
 });

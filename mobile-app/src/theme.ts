@@ -1,56 +1,67 @@
 export const palette = {
-  bg: '#0D1117',
-  bgSoft: '#111827',
-  bgCard: '#161B22',
-  bgElevated: '#1C2128',
-  bgInput: '#21262D',
-  bgGlass: 'rgba(255,255,255,0.04)',
+  bg: '#F5F5F0',
+  bgSurface: '#FFFFFF',
+  bgMuted: '#F0F0EB',
+  bgInput: '#FFFFFF',
+  bgSubtle: '#FAFAF7',
 
-  orange: '#F97316',
-  orangeLight: '#FB923C',
-  orangeSoft: '#FDBA74',
-  orangeDim: '#431407',
-  orangeBorder: '#7C2D12',
-  blue: '#38BDF8',
-  blueDim: '#0C2530',
-  violet: '#8B5CF6',
-  violetDim: '#24163E',
+  orange: '#E97B10',
+  orangeLight: '#F59518',
+  orangeTint: '#FEF3E2',
+  orangeBorder: '#F5C17A',
 
-  textPrimary: '#F0F6FC',
-  textSecondary: '#8B949E',
-  textMuted: '#484F58',
+  textPrimary: '#111111',
+  textSecondary: '#3D3D3D',
+  textMuted: '#737373',
+  textDisabled: '#A3A3A3',
 
-  success: '#3FB950',
-  successDim: '#0F2A13',
-  warning: '#D29922',
-  warningDim: '#2D1F00',
-  error: '#F85149',
-  errorDim: '#2A0F0F',
+  success: '#16A34A',
+  successBg: '#DCFCE7',
+  warning: '#D97706',
+  warningBg: '#FEF3C7',
+  error: '#DC2626',
+  errorBg: '#FEE2E2',
+  info: '#2563EB',
+  infoBg: '#DBEAFE',
 
-  border: '#30363D',
-  borderLight: '#21262D',
-  borderStrong: '#3D444D',
-};
-
-export const fonts = {
-  heading: 'System',
-  body: 'System',
+  border: '#E5E5E5',
+  borderStrong: '#D4D4D4',
+  divider: '#F0F0F0',
 };
 
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  full: 999,
+  sm: 4,
+  md: 8,
+  lg: 12,
+  xl: 16,
+  '2xl': 24,
+  full: 9999,
 };
 
 export const shadows = {
   card: {
     shadowColor: '#000',
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
+  elevated: {
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+};
+
+export const typography = {
+  displayLarge: { fontSize: 28, fontWeight: '800' as const, letterSpacing: -0.5 },
+  displayMedium: { fontSize: 22, fontWeight: '800' as const, letterSpacing: -0.3 },
+  titleLarge: { fontSize: 18, fontWeight: '700' as const },
+  titleMedium: { fontSize: 16, fontWeight: '700' as const },
+  body: { fontSize: 14, fontWeight: '400' as const, lineHeight: 21 },
+  bodySmall: { fontSize: 13, fontWeight: '400' as const, lineHeight: 19 },
+  label: { fontSize: 11, fontWeight: '700' as const, letterSpacing: 0.5 },
+  caption: { fontSize: 11, fontWeight: '400' as const, color: '#737373' },
 };

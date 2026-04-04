@@ -12,7 +12,7 @@ const navTheme = {
   colors: {
     ...DefaultTheme.colors,
     background: palette.bg,
-    card: palette.bgCard,
+    card: palette.bgSurface,
     text: palette.textPrimary,
     border: palette.border,
     primary: palette.orange,
@@ -24,7 +24,7 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <NavigationContainer theme={navTheme}>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <AppNavigator />
         </NavigationContainer>
       </AuthProvider>

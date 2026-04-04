@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -12,8 +11,11 @@ import {
   View,
 } from 'react-native';
 
+import { Card } from '../components/Card';
+import { OutlineButton } from '../components/OutlineButton';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
-import { palette, radius, shadows } from '../theme';
+import { palette, radius, typography } from '../theme';
 
 export function LoginScreen({ navigation }: any) {
   const { login } = useAuth();
@@ -23,7 +25,7 @@ export function LoginScreen({ navigation }: any) {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Missing details', 'Enter your email and password to continue.');
+      Alert.alert('Missing details', 'Use your account or the demo credentials below.');
       return;
     }
 
@@ -37,14 +39,14 @@ export function LoginScreen({ navigation }: any) {
     }
   };
 
-  const handleDemoLogin = async () => {
+  const handleDemo = async () => {
     setEmail('ravi@insureit.demo');
     setPassword('demo123');
     setLoading(true);
     try {
       await login('ravi@insureit.demo', 'demo123');
     } catch {
-      Alert.alert('Demo login failed', 'Please make sure the backend server is available.');
+      Alert.alert('Demo login failed', 'Please make sure the backend is available.');
     } finally {
       setLoading(false);
     }
@@ -53,264 +55,148 @@ export function LoginScreen({ navigation }: any) {
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.hero}>
-          <View style={styles.brandRow}>
-            <View style={styles.brandMark}>
-              <Text style={styles.brandMarkText}>IN</Text>
-            </View>
-            <View>
-              <Text style={styles.brandName}>InsureIt</Text>
-              <Text style={styles.brandTag}>Income protection for delivery partners</Text>
-            </View>
-          </View>
-
-          <View style={styles.heroPanel}>
-            <Text style={styles.kicker}>Coverage Active</Text>
-            <Text style={styles.heroTitle}>Protect every working hour.</Text>
-            <Text style={styles.heroCopy}>
-              Monitor disruptions, activate claims instantly, and keep riders informed with one clean mobile flow.
-            </Text>
-            <View style={styles.metricsRow}>
-              <Metric value="<90s" label="Payout demo" />
-              <Metric value="24x7" label="Coverage" />
-              <Metric value="3 tiers" label="Plans" />
-            </View>
+        <View style={styles.branding}>
+          <Text style={styles.logo}>InsureIt</Text>
+          <Text style={styles.tagline}>Income protection for delivery partners</Text>
+          <View style={styles.metricRow}>
+            <Metric value="<90s" label="Payouts" />
+            <Metric value="24×7" label="Coverage" />
+            <Metric value="3 tiers" label="Plans" />
           </View>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Sign In</Text>
-          <Text style={styles.cardSubtitle}>Use the seeded demo account or your registered profile.</Text>
+        <Card style={styles.formCard} elevated>
+          <Text style={styles.title}>Sign In</Text>
+          <Text style={styles.subtitle}>Use your account or the demo credentials below.</Text>
 
-          <Label text="Email" />
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="rider@insureit.demo"
-            placeholderTextColor={palette.textMuted}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
+          <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+          <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry />
 
-          <Label text="Password" />
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Enter password"
-            placeholderTextColor={palette.textMuted}
-            secureTextEntry
-          />
+          <View style={styles.actions}>
+            <PrimaryButton label="Enter Dashboard" onPress={handleLogin} loading={loading} />
+            <OutlineButton label="Use Demo Credentials" onPress={handleDemo} disabled={loading} />
+          </View>
 
-          <TouchableOpacity style={[styles.primaryButton, loading && styles.disabled]} onPress={handleLogin} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>Enter Dashboard</Text>}
+          <TouchableOpacity style={styles.footerLink} onPress={() => navigation.navigate('Register')}>
+            <Text style={styles.footerText}>Don&apos;t have an account? </Text>
+            <Text style={styles.footerAction}>Create one</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.secondaryButton} onPress={handleDemoLogin} disabled={loading}>
-            <Text style={styles.secondaryButtonText}>Use Demo Credentials</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.footerLinkWrap} onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.footerText}>Need an account?</Text>
-          <Text style={styles.footerLink}>Create one now</Text>
-        </TouchableOpacity>
+        </Card>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-function Label({ text }: { text: string }) {
-  return <Text style={styles.label}>{text}</Text>;
-}
-
-function Metric({ value, label }: { value: string; label: string }) {
+function Field(props: any) {
   return (
-    <View style={styles.metricCard}>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{props.label}</Text>
+      <TextInput
+        {...props}
+        placeholderTextColor={palette.textMuted}
+        style={styles.input}
+      />
     </View>
   );
 }
 
+function Metric({ value, label }: { value: string; label: string }) {
+  return (
+    <Card style={styles.metricCard}>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: palette.bg,
+  root: { flex: 1, backgroundColor: palette.bg },
+  scroll: { flexGrow: 1, paddingBottom: 32 },
+  branding: {
+    backgroundColor: palette.orangeTint,
+    borderBottomLeftRadius: radius['2xl'],
+    borderBottomRightRadius: radius['2xl'],
+    paddingHorizontal: 20,
+    paddingTop: 56,
+    paddingBottom: 34,
+    borderBottomWidth: 1,
+    borderBottomColor: palette.orangeBorder,
   },
-  scroll: {
-    flexGrow: 1,
-    padding: 22,
-    justifyContent: 'center',
+  logo: {
+    ...typography.displayLarge,
+    color: palette.orange,
   },
-  hero: {
-    marginBottom: 18,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 18,
-  },
-  brandMark: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: palette.orangeDim,
-    borderWidth: 1,
-    borderColor: palette.orangeBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandMarkText: {
-    color: palette.orangeLight,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  brandName: {
-    color: palette.textPrimary,
-    fontSize: 26,
-    fontWeight: '800',
-  },
-  brandTag: {
-    color: palette.textSecondary,
+  tagline: {
+    marginTop: 6,
+    color: palette.textMuted,
     fontSize: 13,
-    marginTop: 2,
   },
-  heroPanel: {
-    backgroundColor: palette.bgCard,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 20,
-    ...shadows.card,
-  },
-  kicker: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-    overflow: 'hidden',
-    backgroundColor: palette.successDim,
-    color: palette.success,
-    fontSize: 11,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-  heroTitle: {
-    color: palette.textPrimary,
-    fontSize: 28,
-    fontWeight: '800',
-    lineHeight: 34,
-  },
-  heroCopy: {
-    color: palette.textSecondary,
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 10,
-  },
-  metricsRow: {
+  metricRow: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 18,
+    marginTop: 20,
   },
   metricCard: {
     flex: 1,
-    backgroundColor: palette.bgElevated,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: palette.border,
     padding: 12,
   },
   metricValue: {
-    color: palette.orangeLight,
+    color: palette.orange,
     fontSize: 18,
     fontWeight: '800',
   },
   metricLabel: {
+    marginTop: 4,
     color: palette.textMuted,
     fontSize: 11,
-    marginTop: 4,
   },
-  card: {
-    backgroundColor: palette.bgCard,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    borderColor: palette.border,
+  formCard: {
+    marginHorizontal: 16,
+    marginTop: -20,
     padding: 20,
-    ...shadows.card,
   },
-  cardTitle: {
-    color: palette.textPrimary,
-    fontSize: 21,
+  title: {
+    fontSize: 20,
     fontWeight: '800',
+    color: palette.textPrimary,
   },
-  cardSubtitle: {
-    color: palette.textSecondary,
+  subtitle: {
     marginTop: 6,
     marginBottom: 12,
-    lineHeight: 19,
-  },
-  label: {
     color: palette.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 13,
+  },
+  field: {
     marginTop: 12,
+  },
+  fieldLabel: {
+    ...typography.label,
+    color: palette.textSecondary,
     marginBottom: 6,
   },
   input: {
+    minHeight: 46,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.borderStrong,
     backgroundColor: palette.bgInput,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: palette.border,
-    color: palette.textPrimary,
     paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 15,
+    color: palette.textPrimary,
   },
-  primaryButton: {
+  actions: {
+    gap: 10,
     marginTop: 18,
-    backgroundColor: palette.orange,
-    borderRadius: radius.md,
-    paddingVertical: 15,
-    alignItems: 'center',
   },
-  primaryButtonText: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 15,
-  },
-  secondaryButton: {
-    marginTop: 10,
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: palette.orangeBorder,
-    backgroundColor: palette.orangeDim,
-  },
-  secondaryButtonText: {
-    color: palette.orangeSoft,
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  footerLinkWrap: {
+  footerLink: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
     marginTop: 18,
   },
   footerText: {
     color: palette.textSecondary,
   },
-  footerLink: {
-    color: palette.orangeLight,
+  footerAction: {
+    color: palette.orange,
     fontWeight: '700',
-  },
-  disabled: {
-    opacity: 0.6,
   },
 });

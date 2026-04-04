@@ -41,14 +41,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 async function loginRequest(email: string, password: string): Promise<TokenResponse> {
-  const form = new URLSearchParams();
-  form.append("username", email);
-  form.append("password", password);
-
   const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: form.toString(),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
   });
 
   if (!response.ok) {
