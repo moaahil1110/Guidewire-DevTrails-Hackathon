@@ -7,6 +7,7 @@ import {
   RegisterPayload,
   TokenResponse,
   TriggerEvaluation,
+  UpdateProfilePayload,
   User,
 } from "../types";
 
@@ -64,6 +65,8 @@ export const api = {
   login: (email: string, password: string) =>
     loginRequest(email, password),
   me: (token: string) => request<User>("/auth/me", { token }),
+  updateProfile: (token: string, payload: UpdateProfilePayload) =>
+    request<User>("/auth/me", { method: "PUT", token, body: payload }),
   quote: (token: string, tier: CoverageTier, forecastRiskMultiplier = 1.1) =>
     request<PremiumQuote>("/premium/quote", {
       method: "POST",

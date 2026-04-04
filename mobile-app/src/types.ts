@@ -87,3 +87,13 @@ export type RegisterPayload = {
   platform: string;
   avg_daily_earnings: number;
 };
+
+export type UpdateProfilePayload = {
+  full_name: string;
+  phone_number: string;
+  city: string;
+  zone: string;
+  pincode: string;
+  platform: string;
+  avg_daily_earnings: number;
+};

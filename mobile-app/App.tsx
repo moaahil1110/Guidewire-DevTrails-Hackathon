@@ -11,11 +11,11 @@ const navTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: palette.background,
-    card: palette.card,
-    text: palette.text,
+    background: palette.bg,
+    card: palette.bgCard,
+    text: palette.textPrimary,
     border: palette.border,
-    primary: palette.primary,
+    primary: palette.orange,
   },
 };
 
@@ -24,7 +24,7 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <NavigationContainer theme={navTheme}>
-          <StatusBar style="dark" />
+          <StatusBar style="light" />
           <AppNavigator />
         </NavigationContainer>
       </AuthProvider>
